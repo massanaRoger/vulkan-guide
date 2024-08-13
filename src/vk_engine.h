@@ -10,6 +10,8 @@ constexpr unsigned int FRAME_OVERLAP = 2;
 struct FrameData {
 	VkCommandPool _commandPool;
 	VkCommandBuffer _mainCommandBuffer;
+	VkSemaphore _swapchainSemaphore, _renderSemaphore;
+	VkFence _renderFence;
 };
 
 class VulkanEngine {
