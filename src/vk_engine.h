@@ -4,6 +4,7 @@
 #pragma once
 
 #include <vk_types.h>
+#include "deletion_queue.h"
 
 constexpr unsigned int FRAME_OVERLAP = 2;
 
@@ -12,6 +13,7 @@ struct FrameData {
 	VkCommandBuffer _mainCommandBuffer;
 	VkSemaphore _swapchainSemaphore, _renderSemaphore;
 	VkFence _renderFence;
+	DeletionQueue _deletionQueue;
 };
 
 class VulkanEngine {
@@ -22,6 +24,8 @@ public:
 
 	VkQueue _graphicsQueue;
 	uint32_t _graphicsQueueFamily;
+
+	DeletionQueue _mainDeletionQueue;
 
 	bool _isInitialized{ false };
 	int _frameNumber {0};
@@ -40,6 +44,11 @@ public:
 	std::vector<VkImage> _swapchainImages;
 	std::vector<VkImageView> _swapchainImageViews;
 	VkExtent2D _swapchainExtent;
+
+	VmaAllocator _allocator;
+
+	AllocatedImage _drawImage;
+	VkExtent2D _drawExtent;
 
 	struct SDL_Window* _window{ nullptr };
 
@@ -65,4 +74,5 @@ private:
 
 	void create_swapchain(uint32_t width, uint32_t height);
 	void destroy_swapchain();
+	void draw_background(VkCommandBuffer cmd);
 };
