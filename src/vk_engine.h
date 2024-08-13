@@ -5,8 +5,21 @@
 
 #include <vk_types.h>
 
+constexpr unsigned int FRAME_OVERLAP = 2;
+
+struct FrameData {
+	VkCommandPool _commandPool;
+	VkCommandBuffer _mainCommandBuffer;
+};
+
 class VulkanEngine {
 public:
+
+	FrameData _frames[FRAME_OVERLAP];
+	FrameData& get_current_frame() { return _frames[_frameNumber % FRAME_OVERLAP]; };
+
+	VkQueue _graphicsQueue;
+	uint32_t _graphicsQueueFamily;
 
 	bool _isInitialized{ false };
 	int _frameNumber {0};
