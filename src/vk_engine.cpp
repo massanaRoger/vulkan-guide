@@ -122,8 +122,6 @@ void VulkanEngine::draw()
     _drawExtent.width = _drawImage.imageExtent.width;
     _drawExtent.height = _drawImage.imageExtent.height;
 
-    VK_CHECK(vkBeginCommandBuffer(cmd, &cmdBeginInfo));
-
     // transition our main draw image into general layout so we can write into it
     // we will overwrite it all so we dont care about what was the older layout
     vkutil::transition_image(cmd, _drawImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
