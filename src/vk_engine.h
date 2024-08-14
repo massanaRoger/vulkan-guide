@@ -5,6 +5,7 @@
 
 #include <vk_types.h>
 #include "deletion_queue.h"
+#include "vk_descriptors.h"
 
 constexpr unsigned int FRAME_OVERLAP = 2;
 
@@ -18,6 +19,7 @@ struct FrameData {
 
 class VulkanEngine {
 public:
+	DescriptorAllocator globalDescriptorAllocator;
 
 	FrameData _frames[FRAME_OVERLAP];
 	FrameData& get_current_frame() { return _frames[_frameNumber % FRAME_OVERLAP]; };
@@ -50,6 +52,12 @@ public:
 	AllocatedImage _drawImage;
 	VkExtent2D _drawExtent;
 
+	VkDescriptorSet _drawImageDescriptors;
+	VkDescriptorSetLayout _drawImageDescriptorLayout;
+
+	VkPipeline _gradientPipeline;
+	VkPipelineLayout _gradientPipelineLayout;
+
 	struct SDL_Window* _window{ nullptr };
 
 	static VulkanEngine& Get();
@@ -71,6 +79,9 @@ private:
 	void init_swapchain();
 	void init_commands();
 	void init_sync_structures();
+	void init_descriptors();
+	void init_pipelines();
+	void init_background_pipelines();
 
 	void create_swapchain(uint32_t width, uint32_t height);
 	void destroy_swapchain();
