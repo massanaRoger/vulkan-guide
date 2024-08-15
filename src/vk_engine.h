@@ -17,6 +17,21 @@ struct FrameData {
 	DeletionQueue _deletionQueue;
 };
 
+struct ComputePushConstants {
+	glm::vec4 data1;
+	glm::vec4 data2;
+	glm::vec4 data3;
+	glm::vec4 data4;
+};
+
+struct ComputeEffect {
+	const char* name;
+	VkPipeline pipeline;
+	VkPipelineLayout layout;
+
+	ComputePushConstants data;
+};
+
 class VulkanEngine {
 public:
 	DescriptorAllocator globalDescriptorAllocator;
@@ -63,7 +78,8 @@ public:
 	VkCommandBuffer _immCommandBuffer;
 	VkCommandPool _immCommandPool;
 
-	void immediate_submit(std::function<void(VkCommandBuffer cmd)>&& function);
+	std::vector<ComputeEffect> backgroundEffects;
+	int currentBackgroundEffect{ 0 };
 
 	struct SDL_Window* _window{ nullptr };
 
@@ -95,4 +111,6 @@ private:
 	void destroy_swapchain();
 	void draw_background(VkCommandBuffer cmd);
 	void draw_imgui(VkCommandBuffer cmd, VkImageView targetImageView);
+
+	void immediate_submit(std::function<void(VkCommandBuffer cmd)>&& function);
 };
