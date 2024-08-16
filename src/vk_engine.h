@@ -69,6 +69,7 @@ public:
 	AllocatedImage _drawImage;
 	AllocatedImage _depthImage;
 	VkExtent2D _drawExtent;
+	float renderScale = 1.f;
 
 	VkDescriptorSet _drawImageDescriptors;
 	VkDescriptorSetLayout _drawImageDescriptorLayout;
@@ -85,6 +86,8 @@ public:
 	VkPipeline _meshPipeline;
 
 	std::vector<std::shared_ptr<MeshAsset>> testMeshes;
+
+        bool resize_requested;
 
 	std::vector<ComputeEffect> backgroundEffects;
 	int currentBackgroundEffect{ 0 };
@@ -121,13 +124,14 @@ private:
 
 	void create_swapchain(uint32_t width, uint32_t height);
 	void destroy_swapchain();
+	void resize_swapchain();
 	void draw_background(VkCommandBuffer cmd);
 	void draw_imgui(VkCommandBuffer cmd, VkImageView targetImageView);
 	void draw_geometry(VkCommandBuffer cmd);
 
+
 	AllocatedBuffer create_buffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
 	void destroy_buffer(const AllocatedBuffer& buffer);
-
 
 	void immediate_submit(std::function<void(VkCommandBuffer cmd)>&& function);
 };
