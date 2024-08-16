@@ -67,6 +67,7 @@ public:
 	VmaAllocator _allocator;
 
 	AllocatedImage _drawImage;
+	AllocatedImage _depthImage;
 	VkExtent2D _drawExtent;
 
 	VkDescriptorSet _drawImageDescriptors;
@@ -80,15 +81,10 @@ public:
 	VkCommandBuffer _immCommandBuffer;
 	VkCommandPool _immCommandPool;
 
-	VkPipelineLayout _trianglePipelineLayout;
-	VkPipeline _trianglePipeline;
-
 	VkPipelineLayout _meshPipelineLayout;
 	VkPipeline _meshPipeline;
 
 	std::vector<std::shared_ptr<MeshAsset>> testMeshes;
-
-	GPUMeshBuffers rectangle;
 
 	std::vector<ComputeEffect> backgroundEffects;
 	int currentBackgroundEffect{ 0 };
@@ -120,7 +116,6 @@ private:
 	void init_pipelines();
 	void init_background_pipelines();
 	void init_imgui();
-	void init_triangle_pipeline();
 	void init_mesh_pipeline();
 	void init_default_data();
 
