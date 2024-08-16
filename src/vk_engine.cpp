@@ -1,8 +1,14 @@
-﻿//> includes
+﻿// includes
+//
 #include "vk_engine.h"
+#include "glm/ext/matrix_clip_space.hpp"
+#include "glm/trigonometric.hpp"
+#include "glm/gtx/transform.hpp"
+#include "vk_loader.h"
 
 #include <SDL.h>
 #include <SDL_vulkan.h>
+#include <vulkan/vulkan_core.h>
 
 #define VMA_IMPLEMENTATION
 #include "vk_mem_alloc.h"
@@ -523,6 +529,21 @@ void VulkanEngine::draw_geometry(VkCommandBuffer cmd)
 
     vkCmdDrawIndexed(cmd, 6, 1, 0, 0, 0);
 
+    push_constants.vertexBuffer = testMeshes[2]->meshBuffers.vertexBufferAddress;
+
+    glm::mat4 view = glm::translate(glm::vec3{0, 0, -5});
+    glm::mat4 projection = glm::perspective(glm::radians(70.0f), (float)_drawExtent.width / (float)_drawExtent.height, 10000.f, 0.1f);
+
+    // Invert Y direction
+    projection[1][1] *= -1;
+
+    push_constants.worldMatrix = projection * view;
+
+    vkCmdPushConstants(cmd, _meshPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GPUDrawPushConstants), &push_constants);
+    vkCmdBindIndexBuffer(cmd, testMeshes[2]->meshBuffers.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+
+    vkCmdDrawIndexed(cmd, testMeshes[2]->surfaces[0].count, 1, testMeshes[2]->surfaces[0].startIndex, 0, 0);
+
     vkCmdEndRendering(cmd);
 }
 
@@ -691,6 +712,8 @@ void VulkanEngine::init_default_data()
 	rect_indices[5] = 3;
 
     rectangle = uploadMesh(rect_indices, rect_vertices);
+
+    testMeshes = loadGltfMeshes(this, "..\\..\\assets\\basicmesh.glb").value();
 
     _mainDeletionQueue.push_function([&](){
 		destroy_buffer(rectangle.indexBuffer);

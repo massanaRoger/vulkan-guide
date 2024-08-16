@@ -3,9 +3,11 @@
 
 #pragma once
 
+#include <memory>
 #include <vk_types.h>
 #include "deletion_queue.h"
 #include "vk_descriptors.h"
+#include "vk_loader.h"
 
 constexpr unsigned int FRAME_OVERLAP = 2;
 
@@ -84,6 +86,8 @@ public:
 	VkPipelineLayout _meshPipelineLayout;
 	VkPipeline _meshPipeline;
 
+	std::vector<std::shared_ptr<MeshAsset>> testMeshes;
+
 	GPUMeshBuffers rectangle;
 
 	std::vector<ComputeEffect> backgroundEffects;
@@ -104,6 +108,8 @@ public:
 
 	//run main loop
 	void run();
+
+	GPUMeshBuffers uploadMesh(std::span<uint32_t> indices, std::span<Vertex> vertices);
 
 private:
 	void init_vulkan();
@@ -127,7 +133,6 @@ private:
 	AllocatedBuffer create_buffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
 	void destroy_buffer(const AllocatedBuffer& buffer);
 
-	GPUMeshBuffers uploadMesh(std::span<uint32_t> indices, std::span<Vertex> vertices);
 
 	void immediate_submit(std::function<void(VkCommandBuffer cmd)>&& function);
 };
