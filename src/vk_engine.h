@@ -6,17 +6,30 @@
 #include <memory>
 #include <vk_types.h>
 #include "deletion_queue.h"
+#include "glm/fwd.hpp"
 #include "vk_descriptors.h"
 #include "vk_loader.h"
 
 constexpr unsigned int FRAME_OVERLAP = 2;
 
+struct GPUSceneData {
+	glm::mat4 view;
+	glm::mat4 proj;
+	glm::mat4 viewproj;
+	glm::mat4 ambientColor;
+	glm::mat4 sunlightDirection;  // w for sun power
+	glm::mat4 sunlightColor;
+};
+
 struct FrameData {
 	VkCommandPool _commandPool;
 	VkCommandBuffer _mainCommandBuffer;
+
 	VkSemaphore _swapchainSemaphore, _renderSemaphore;
 	VkFence _renderFence;
+
 	DeletionQueue _deletionQueue;
+	DescriptorAllocatorGrowable _frameDescriptors;
 };
 
 struct ComputePushConstants {
@@ -84,6 +97,9 @@ public:
 
 	VkPipelineLayout _meshPipelineLayout;
 	VkPipeline _meshPipeline;
+
+	GPUSceneData sceneData;
+	VkDescriptorSetLayout _gpuSceneDataDescriptorLayout;
 
 	std::vector<std::shared_ptr<MeshAsset>> testMeshes;
 

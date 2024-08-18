@@ -147,6 +147,18 @@ void DescriptorAllocatorGrowable::clear_pools(VkDevice device)
 	fullPools.clear();
 }
 
+void DescriptorAllocatorGrowable::destroy_pools(VkDevice device)
+{
+	for (auto p : readyPools) {
+		vkDestroyDescriptorPool(device, p, nullptr);
+	}
+    readyPools.clear();
+	for (auto p : fullPools) {
+		vkDestroyDescriptorPool(device,p,nullptr);
+    }
+    fullPools.clear();
+}
+
 VkDescriptorSet DescriptorAllocatorGrowable::allocate(VkDevice device, VkDescriptorSetLayout layout, void* pNext)
 {
 	VkDescriptorPool poolToUse = get_pool(device);

@@ -1,6 +1,7 @@
 ﻿// includes
 #include "vk_engine.h"
 #include "SDL_video.h"
+#include "fmt/core.h"
 #include "glm/ext/matrix_clip_space.hpp"
 #include "glm/trigonometric.hpp"
 #include "glm/gtx/transform.hpp"
@@ -10,6 +11,7 @@
 #include <SDL.h>
 #include <SDL_vulkan.h>
 #include <algorithm>
+#include <vector>
 #include <vulkan/vulkan_core.h>
 
 #define VMA_IMPLEMENTATION
@@ -113,6 +115,7 @@ void VulkanEngine::draw()
     VK_CHECK(vkWaitForFences(_device, 1, &get_current_frame()._renderFence, true, 1000000000));
 
     get_current_frame()._deletionQueue.flush();
+    get_current_frame()._frameDescriptors.clear_pools(_device);
 
     VK_CHECK(vkResetFences(_device, 1, &get_current_frame()._renderFence));
 
@@ -448,6 +451,12 @@ void VulkanEngine::init_descriptors()
         _drawImageDescriptorLayout = builder.build(_device, VK_SHADER_STAGE_COMPUTE_BIT);
     }
 
+    {
+        DescriptorLayoutBuilder builder;
+        builder.add_binding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+        _gpuSceneDataDescriptorLayout = builder.build(_device, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+    }
+
     _drawImageDescriptors = globalDescriptorAllocator.allocate(_device, _drawImageDescriptorLayout);
 
     DescriptorWriter writer;
@@ -460,6 +469,22 @@ void VulkanEngine::init_descriptors()
         globalDescriptorAllocator.destroy_pool(_device);
         vkDestroyDescriptorSetLayout(_device, _drawImageDescriptorLayout, nullptr);
     });
+
+    for (int i = 0; i < FRAME_OVERLAP; i++) {
+        std::vector<DescriptorAllocatorGrowable::PoolSizeRatio> frame_sizes = {
+            { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 3 },
+            { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3 },
+            { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3 },
+            { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4 },
+        };
+
+        _frames[i]._frameDescriptors = DescriptorAllocatorGrowable{};
+        _frames[i]._frameDescriptors.init(_device, 1000, frame_sizes);
+
+        _mainDeletionQueue.push_function([&, i]() {
+            _frames[i]._frameDescriptors.destroy_pools(_device);
+        });
+    }
 }
 
 void VulkanEngine::init_sync_structures()
@@ -527,10 +552,26 @@ void VulkanEngine::draw_background(VkCommandBuffer cmd) {
 
 void VulkanEngine::draw_geometry(VkCommandBuffer cmd)
 {
+    // Allocate new uniform buffer
+    AllocatedBuffer gpuSceneDataBuffer = create_buffer(sizeof(GPUSceneData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU);
+
+    get_current_frame()._deletionQueue.push_function([=, this]() {
+        destroy_buffer(gpuSceneDataBuffer);
+    });
+
+    GPUSceneData* sceneUniformData = (GPUSceneData*)gpuSceneDataBuffer.allocation->GetMappedData();
+    *sceneUniformData = sceneData;
+
+    VkDescriptorSet globalDescriptor = get_current_frame()._frameDescriptors.allocate(_device, _gpuSceneDataDescriptorLayout);
+
+    DescriptorWriter writer;
+    writer.write_buffer(0, gpuSceneDataBuffer.buffer, sizeof(GPUSceneData), 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+    writer.update_set(_device, globalDescriptor);
+
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, _meshPipeline);
 
-	GPUDrawPushConstants push_constants;
-	push_constants.worldMatrix = glm::mat4{ 1.f };
+    GPUDrawPushConstants push_constants;
+    push_constants.worldMatrix = glm::mat4{ 1.f };
 
     push_constants.vertexBuffer = testMeshes[2]->meshBuffers.vertexBufferAddress;
 
@@ -572,9 +613,9 @@ void VulkanEngine::draw_geometry(VkCommandBuffer cmd)
 
     vkCmdSetScissor(cmd, 0, 1, &scissor);
 
-	vkCmdDraw(cmd, 3, 1, 0, 0);
+    vkCmdDraw(cmd, 3, 1, 0, 0);
 
-	vkCmdEndRendering(cmd);
+    vkCmdEndRendering(cmd);
 }
 
 void VulkanEngine::init_pipelines() 
@@ -604,12 +645,12 @@ void VulkanEngine::init_background_pipelines()
 
     VkShaderModule gradientShader;
     if (!vkutil::load_shader_module("../../shaders/gradient_color.comp.spv", _device, &gradientShader)) {
-        fmt::println("Error when building the compute shader \n");
+        fmt::println(fmt::runtime("Error when building the compute shader \n"));
     }
 
     VkShaderModule skyShader;
     if (!vkutil::load_shader_module("../../shaders/sky.comp.spv", _device, &skyShader)) {
-        fmt::print("Error when building the compute shader \n");
+        fmt::print(fmt::runtime("Error when building the compute shader \n"));
     }
 
     VkPipelineShaderStageCreateInfo stageInfo{};
@@ -742,18 +783,18 @@ void VulkanEngine::init_mesh_pipeline()
 {
     VkShaderModule triangleFragShader;
     if (!vkutil::load_shader_module("../../shaders/colored_triangle.frag.spv", _device, &triangleFragShader)) {
-        fmt::print("Error when building the triangle fragment shader module");
+        fmt::print(fmt::runtime("Error when building the triangle fragment shader module"));
     }
     else {
-        fmt::print("Triangle fragment shader succesfully loaded");
+        fmt::print(fmt::runtime("Triangle fragment shader succesfully loaded"));
     }
 
     VkShaderModule triangleVertexShader;
     if (!vkutil::load_shader_module("../../shaders/colored_triangle_mesh.vert.spv", _device, &triangleVertexShader)) {
-        fmt::print("Error when building the triangle vertex shader module");
+        fmt::print(fmt::runtime("Error when building the triangle vertex shader module"));
     }
     else {
-        fmt::print("Triangle vertex shader succesfully loaded");
+        fmt::print(fmt::runtime("Triangle vertex shader succesfully loaded"));
     }
 
     VkPushConstantRange bufferRange{};
